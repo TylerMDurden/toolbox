@@ -24,3 +24,16 @@ Get-NetIPConfiguration
 
 # DNS-Cache am Client löschen
 Clear-DnsClientCache
+
+## 📂 Dateisystem
+
+Navigation wie im Explorer, nur schneller.
+
+# Liste alle Dateien auf (wie 'ls' oder 'dir')
+Get-ChildItem
+
+# Erstelle einen neuen Ordner
+New-Item -Path "C:\Temp\NeuerOrdner" -ItemType Directory
+
+# Dateiinhalt anzeigen (wie 'cat')
+Get-Content -Path "C:\Logs\Error.log" -Tail 10  # Zeigt nur die letzten 10 Zeilen
