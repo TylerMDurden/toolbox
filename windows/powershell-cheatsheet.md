@@ -25,10 +25,10 @@ Get-NetIPConfiguration
 # DNS-Cache am Client löschen
 Clear-DnsClientCache
 
-### 📂 Dateisystem
-
+## 📂 Dateisystem
 Navigation wie im Explorer, nur schneller.
 
+```
 # Liste alle Dateien auf (wie 'ls' oder 'dir')
 Get-ChildItem
 
