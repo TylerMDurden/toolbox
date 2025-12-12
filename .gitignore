@@ -1,1 +1,22 @@
+# --- Windows Systemdateien (Müll) ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
+# --- PowerShell / Skripte ---
+*.log
+*_Transcript.txt
+
+# --- Editor / VS Code ---
+.vscode/
+*.code-workspace
+
+# --- Sicherheit (Ganz wichtig!) ---
+*.cred
+*.secret
+
+# --- Temporäre Dateien ---
+*.tmp
+*.bak
+*.swp
