@@ -70,6 +70,11 @@ Get-Service -Name wuauserv | Start-Service
 Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 ```
 
+*Wichtig: Der Neustart*
+
+Egal welche Methode du wählst: Du musst den PC neu starten. Hyper-V ist ein Typ-1-Hypervisor, der sich tief ins System gräbt; das wird erst nach dem Booten aktiv.
+Nach dem Neustart findest du im Startmenü den Hyper-V-Manager, mit dem du deine VMs verwalten kannst.
+
 ## 🔧 Die Pipeline: Filtern, Sortieren & Ändern
 Das Herzstück von PowerShell: Daten von links nach rechts weiterreichen (`|`).
 
