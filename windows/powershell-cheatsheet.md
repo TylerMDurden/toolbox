@@ -64,6 +64,12 @@ Windows-Dienste steuern und hängende Programme beenden.
 Get-Service -Name wuauserv | Start-Service
 ```
 
+**Aktivierung Hyper-V**
+
+```powershell
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+```
+
 ## 🔧 Die Pipeline: Filtern, Sortieren & Ändern
 Das Herzstück von PowerShell: Daten von links nach rechts weiterreichen (`|`).
 
