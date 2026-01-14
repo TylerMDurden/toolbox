@@ -1,3 +1,5 @@
+https://learn.microsoft.com/de-de/windows-hardware/manufacture/desktop/sysprep--system-preparation--overview?view=windows-11
+
 Erstellen einer SysPrep
 
 Vorbereitung des Referenzservers:
