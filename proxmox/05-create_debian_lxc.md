@@ -1,7 +1,7 @@
 ### Beispielbefehl zur Erstellung eines Debian-LXC
 
 ```shell
-pct create 110 local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst \
+pct create 110 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
   --hostname python-dev \
   --storage local-lvm \
   --net0 name=eth0,bridge=vmbr0,ip=dhcp,firewall=1 \
