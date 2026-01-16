@@ -43,11 +43,11 @@ Wenn der Key-Login funktioniert, kannst du das Passwort-Login komplett abschalte
 
 1. Wieder in die `/etc/ssh/sshd_config` im LXC gehen.
 2. Folgende Werte setzen:
-```
-PasswordAuthentication no
-ChallengeResponseAuthentication no
-UsePAM no
-```
+   ```
+   PasswordAuthentication no
+   ChallengeResponseAuthentication no
+   UsePAM no
+   ```
 3. SSH neu starten: `systemctl restart ssh`
 
 **Achtung:** Ab jetzt kommst du per SSH NUR noch mit deinem Key rein. Verlierst du den Key, musst du über die Proxmox-Konsole gehen, um es zu reparieren.
@@ -56,16 +56,63 @@ UsePAM no
 
 Du kannst bei der Erstellung eines neuen LXC in Proxmox direkt unter dem Reiter "General" deinen Public Key (den Inhalt der .pub Datei) reinkopieren. Dann ist der Container ab der ersten Sekunde perfekt abgesichert!
 
+---
+## Verschiedene Varianten den Key zu übertragen (Proxmox)
 
+Oft ist der direkte SSH-Login für root gesperrt, bevor der Key hinterlegt wurde.
 
+### Weg 1: Über die Proxmox Web-Konsole (Der einfachste Weg)
 
+Dieser Weg funktioniert immer, solange du Zugriff auf die Proxmox-Weboberfläche hast.
 
+1. Kopiere deinen Public Key auf deinem Windows-PC (Inhalt der `.pub`-Datei).
+2. Gehe in Proxmox auf deinen LXC -> Console.
+3. Logge dich dort als `root` mit dem Passwort ein, das du bei der Erstellung vergeben hast.
+4. Gib folgenden Befehl ein (um die Datei zu öffnen):
+   ```shell
+   nano ~/.ssh/authorized_keys
+   ```
+*(Falls der Ordner nicht existiert: `mkdir -p ~/.ssh && chmod 700 ~/.ssh)`*
 
+5. Füge den Key ein (Rechtsklick in der Proxmox-Konsole fügt oft direkt ein).
+6. Speichern mit `Strg+O`, `Enter` und `Strg+X`.
 
+### Weg 2: Über den Host "Zion" (Der FISI-Pro-Weg)
 
+Da der LXC nur ein Verzeichnis auf deinem Host-System ist, kannst du den Key einfach von der Zion-Shell aus "hineinschieben". Das ist extrem elegant, weil du den Container dafür nicht mal starten musst.
 
+1. Logge dich per SSH auf deinem Host Zion ein.
+2. Nutze den Befehl `pct push`, um eine Datei vom Host in den Container zu kopieren:
+   - Erstelle erst eine temporäre Datei auf Zion mit deinem Key.
+   - Dann:
+     ```shell
+     # pct push <Container-ID> <Quelle-auf-Zion> <Ziel-im-LXC>
+     pct push 100 /tmp/my_key.pub /root/.ssh/authorized_keys
+     ```
+3. Danach im LXC noch kurz die Rechte korrigieren (auch über Zion möglich):
+   ```shell
+   pct exec 100 -- chown root:root /root/.ssh/authorized_keys
+   pct exec 100 -- chmod 600 /root/.ssh/authorized_keys
+   ```
 
+### Weg 3: Direktes Editieren des Filesystems (Tiefstes Linux-Wissen)
 
+Da dein LXC auf Zion liegt (wahrscheinlich auf deinem ZFS-Pool oder der NVMe), ist sein Dateisystem unter `/var/lib/lxc/<ID>/rootfs/` gemountet, während er läuft (oder du kannst es mounten).
+
+Du kannst auf Zion einfach dies tun:
+```shell
+nano /var/lib/lxc/100/rootfs/root/.ssh/authorized_keys
+```
+Hier fügst du den Key ein, speicherst, und fertig. Der LXC sieht die Änderung sofort.
+
+---
+
+#### Zusammenfassung für deine Unterlagen:
+- Weg 1 ist super, wenn man schnell mal was ändern will.
+- Weg 2 ist der sauberste Weg für Automatisierung und Skripte.
+- Weg 3 zeigt dir, wie Container unter Linux wirklich funktionieren (sie sind nur isolierte Prozesse mit einem eigenen Ordner als "Wurzel").
+
+**Wichtig:** Wenn du den Key übertragen hast, vergiss nicht, in der `/etc/ssh/sshd_config` des LXC zu prüfen, ob der Key-Login erlaubt ist (`PubkeyAuthentication yes`).
 
 
 
