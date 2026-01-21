@@ -1,6 +1,8 @@
 # Definition der Farben für die Ausgabe
 $HeaderColor = "Cyan"
 
+Clear-Host
+
 Write-Host "--- SYSTEM-DIAGNOSE-BERICHT ---" -ForegroundColor $HeaderColor
 
 # 1. Systeminformationen (Get-ComputerInfo)
