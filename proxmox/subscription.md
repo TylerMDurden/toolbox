@@ -47,4 +47,4 @@ Ergebnis:
 
 Danach den Browsercache leeren und neu einloggen.
 
-Getestet mit Proxmox 9.0.5
+Getestet mit Proxmox 9.1.4
