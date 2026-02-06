@@ -10,7 +10,7 @@ Bevor der Container erstellt werden kann, muss das Alpine-Template geladen werde
 
 1.  Wähle in Proxmox deinen Speicher (z.B. `local` oder `local-lvm`).
 2.  Gehe zu **CT Templates** -> **Templates**.
-3.  Suche nach `alpine` (z.B. `alpine-3.21-default`).
+3.  Suche nach `alpine` (z.B. `alpine-3.23-default`).
 4.  Klicke auf **Herunterladen**.
 
 ---
