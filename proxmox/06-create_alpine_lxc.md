@@ -97,11 +97,32 @@ Standardmäßig erlaubt Alpine oft keinen Root-Login per Passwort über SSH.
    rc-service sshd restart
    ```
 
-## Vorbereitung für AdGuard Home
+## 5. Vorbereitung für AdGuard Home
 
 Da Alpine `musl` statt `glibc` nutzt, laufen manche Binaries nicht sofort. AdGuard Home ist jedoch in Go geschrieben und funktioniert meist direkt. Sollte es später Probleme bei der Namensauflösung geben, hilft oft dieser Trick, um sicherzustellen, dass der Container selbst DNS auflösen kann:
 
+1. DNS-Resolver prüfen:
+   ```bash
+   nano /etc/resolv.conf
+   ```
+2. Stelle sicher, dass dort ein funktionierender Nameserver steht (z.B. dein Router oder Google):
+   ```bash
+   nameserver 8.8.8.8
+   nameserver 1.1.1.1
+   ```
 
+## 6. Installation von AdGuard Home (Beispielbefehl)
+
+Nun ist der Alpine-Container bereit. Du kannst AdGuard mit folgendem Befehl installieren:
+
+```bash
+curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
+```
+
+## 7. Abschluss
+
+1. **Snapshot erstellen:** Gehe in Proxmox auf den Container **-> Snapshots -> Erstellen** (Name: "Frisch Installiert").
+2. **Webinterface aufrufen:** `http://<DEINE-IP>:3000`
 
 
 
