@@ -69,8 +69,7 @@ Alpine ist standardmäßig auf UTC eingestellt. Für korrekte Logs und Zeitplän
 
 1. Paket für Zeitzonen installieren:
    ```bash
-   cp /usr/share/zoneinfo/Europe/Berlin /etc/localtime
-   echo "Europe/Berlin" > /etc/timezone
+   apk add tzdata
    ```
 2. Zeitzone kopieren (Beispiel für Berlin/Deutschland):
    ```bash
