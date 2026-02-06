@@ -82,16 +82,35 @@ Alpine ist standardmäßig auf UTC eingestellt. Für korrekte Logs und Zeitplän
 
 Standardmäßig erlaubt Alpine oft keinen Root-Login per Passwort über SSH.
 
-1. Datei bearbeiten:
+1. Paket installieren:
+   ```bash
+   apk add openssh
+   ```
+2. Dienst zum Boot-Vorgang hinzufügen:
+   ```bash
+   rc-update add sshd default
+   ```
+3. Dienst manuell starten (falls er noch nicht läuft):
+   ```bash
+   rc-service sshd start
+   ```
+**Jetzt sollte der root Zugriff mittels  SSH-Key funktionieren!!!**
+der Rest ist optional und dient der Information.
+`PermitRootLogin yes` ist der "Quick & Dirty"-Weg.
+
+- **Sicherer:** Nutze lieber `prohibit-password` statt `yes`. Dann kannst du dich nur mit einem SSH-Key einloggen, was deutlich sicherer gegen Brute-Force-Angriffe ist.
+- Alternative: Wenn du gerade erst mit dem Container/der VM startest, kannst du bei Alpine auch einfach das Setup-Script nutzen: `setup-sshd`. Das erledigt die Installation und die grundlegende Konfiguration in einem Rutsch.
+
+4. Datei bearbeiten:
    ```bash
    nano /etc/ssh/sshd_config
    ```
-2. Suche die Zeile #PermitRootLogin ... und ändere sie zu:
+5. Suche die Zeile #PermitRootLogin ... und ändere sie zu:
    ```plain
    PermitRootLogin yes
    ```
-3. Speichern (`STRG+O`, `Enter`) und Beenden (`STRG+X`).
-4. SSH-Dienst neu starten:
+6. Speichern (`STRG+O`, `Enter`) und Beenden (`STRG+X`).
+7. SSH-Dienst neu starten:
    ```bash
    rc-service sshd restart
    ```
