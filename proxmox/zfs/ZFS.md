@@ -51,6 +51,11 @@ Diese Übersicht enthält die wichtigsten ZFS-Befehle für die Verwaltung der St
   ```bash
   arcstat
   ```
+* **Status `DEGRADED` zurücksetzen:(Status zurücksetzen nach Schreib- oder Lesefehlern)**
+  ```bash
+  zpool clear poolname
+  ```
+  
 ## 4. Hardware-Tausch (HDD/SSD Failure)
 *Vorgehen bei einem Defekt im ZFS Mirror.*
 1. Defekte Platte offline nehmen:
