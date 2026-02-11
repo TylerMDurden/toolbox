@@ -60,9 +60,26 @@ apt update && apt upgrade -y
 - ### Token generieren
 
   -> Load Data -> API Tokens -> `+ GENERATE API TOKEN` -> All Access API Token
+  
   Description: Proxmox
 
-  *generierten Token kopieren!!!*  
+  *generierten Token kopieren!!!*
+
+- ### Metric Server Proxmox einrichten
+
+  -> Datacenter -> Metric Server -> `Add` -> InfluxDB
+
+  | Eigenschaft | Wert |
+  | :--- | :--- |
+  | Name | Monitoring |
+  | Server | 192.168.25.100 |
+  | Port | 8086 |
+  | Protocol | HTTP |
+  | Organisation | mb-homelab |
+  | Bucket | proxmox |
+  | Token | ********** |
+
+  
 
 
   
