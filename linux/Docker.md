@@ -253,3 +253,6 @@ tar -cvpzf backup_$(date +%Y%m%d).tar.gz /pfad/zu/deinem/projekt
 # 3. Container wieder starten
 docker compose start
 ````
+
+
+*Stand 17.03.2026*
