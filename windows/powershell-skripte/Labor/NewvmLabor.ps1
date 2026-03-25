@@ -1,25 +1,22 @@
-﻿# --- Globale Variablen ---
+﻿###  wollte hier automatisch die nic bei der gast vm umbenennen
+###  ist aber nicht so einfach möglich
+
+# --- Globale Variablen ---
 $VMPath     = "C:\HyperV\VM" 
 $ParentVHDX = "C:\SysPrep\Win11-SysPrep.vhdx" 
 $VHDXFolder = "C:\HyperV\VHDX"
+# Admin-Credentials für das Gast-OS (Nötig für das Umbenennen im Gast)
+$GuestCreds = Get-Credential -Message "Bitte Admin-Login für die VMS eingeben"
 
-# --- Liste der VMs mit benannten Netzwerkkarten ---
+# --- Liste der VMs ---
 $VMList = @(
     @{ 
-        VMName  = "Test-A"; 
-        # Karte 1
-        Switch1 = "A-Stadt";     NetName1 = "A-Stadt";
-        # Karte 2
-        Switch2 = "Backup_one"; NetName2 = "Backbone_one";
-        # Karte 3
+        VMName  = "Test-D"; 
+        Switch1 = "D-Stadt";     NetName1 = "LAN-Intern";
+        Switch2 = "Backbone_one"; NetName2 = "Backbone_one";
         Switch3 = "Backbone_two";  NetName3 = "Backbone_two"
-    },
-    @{ 
-        VMName  = "Test-B"; 
-        Switch1 = "B-Stadt";     NetName1 = "LAN-Intern";
-        Switch2 = "Backbone_one";    NetName2 = "Backbone_one";
-        Switch3 = "";            NetName3 = "" # Hat nur 2 Karten
     }
+    # Weitere VMs hier...
 )
 
 # --- Ordner-Check ---
@@ -35,54 +32,55 @@ foreach ($Item in $VMList) {
     Write-Host "---------------------------------------------"
     Write-Host "Verarbeite: $Name" -ForegroundColor Cyan
 
-    # 1. Check ob VM existiert
-    if (Get-VM -Name $Name -ErrorAction SilentlyContinue) {
-        Write-Host "VM '$Name' existiert bereits." -ForegroundColor Yellow
-        continue
-    }
-
-    # 2. Disk erstellen
-    if (!(Test-Path $NewVHDX)) {
-        New-VHD -ParentPath $ParentVHDX -Path $NewVHDX -Differencing | Out-Null
-    }
-
-    # 3. VM erstellen (OHNE Switch, damit wir Namen sauber setzen können)
-    try {
-        New-VM -Name $Name -VHDPath $NewVHDX -Generation 2 -Path $VMPath -ErrorAction Stop | Out-Null
-        Write-Host " -> VM Container erstellt." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "FEHLER beim Erstellen der VM '$Name'." -ForegroundColor Red
-        continue
-    }
-
-    # 4. Netzwerkkarten hinzufügen und benennen
-
-    # --- Karte 1 ---
-    if ($Item.Switch1) {
-        Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch1 -Name $Item.NetName1
-        Write-Host " -> NIC '$($Item.NetName1)' an Switch '$($Item.Switch1)' hinzugefügt." -ForegroundColor Green
-    }
-
-    # --- Karte 2 ---
-    if ($Item.Switch2) {
-        Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch2 -Name $Item.NetName2
-        Write-Host " -> NIC '$($Item.NetName2)' an Switch '$($Item.Switch2)' hinzugefügt." -ForegroundColor Green
-    }
-
-    # --- Karte 3 ---
-    if ($Item.Switch3) {
-        Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch3 -Name $Item.NetName3
-        Write-Host " -> NIC '$($Item.NetName3)' an Switch '$($Item.Switch3)' hinzugefügt." -ForegroundColor Green
-    }
-
-    # 5. Hardware & TPM konfigurieren
-    Set-VMMemory -VMName $Name -DynamicMemoryEnabled $true -StartupBytes 2GB -MinimumBytes 512MB -MaximumBytes 4GB
-    Set-VMProcessor -VMName $Name -Count 4 # Angepasst auf 4 Kerne (realistischer)
-    Set-VM -Name $Name -CheckpointType Disabled
+    # 1. Disk & VM erstellen (wie gehabt)
+    if (!(Test-Path $NewVHDX)) { New-VHD -ParentPath $ParentVHDX -Path $NewVHDX -Differencing | Out-Null }
     
-    # Optional: DeviceNaming aktivieren (hilft manchmal, die Namen ins Windows-Gast-OS durchzureichen)
-    # Set-VMNetworkAdapter -VMName $Name -DeviceNaming On
+    if (!(Get-VM -Name $Name -ErrorAction SilentlyContinue)) {
+        New-VM -Name $Name -VHDPath $NewVHDX -Generation 2 -Path $VMPath | Out-Null
+        
+        # 2. Netzwerkkarten hinzufügen & DeviceNaming aktivieren
+        # Das Feature "-DeviceNaming On" schreibt den Namen in ein spezielles Register der virtuellen Karte
+        if ($Item.Switch1) { Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch1 -Name $Item.NetName1 -DeviceNaming On }
+        if ($Item.Switch2) { Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch2 -Name $Item.NetName2 -DeviceNaming On }
+        if ($Item.Switch3) { Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch3 -Name $Item.NetName3 -DeviceNaming On }
+
+        # Hardware
+        Set-VMMemory -VMName $Name -DynamicMemoryEnabled $true -StartupBytes 2GB -MaximumBytes 4GB
+        Set-VMProcessor -VMName $Name -Count 4
+        Set-VM -Name $Name -CheckpointType Disabled
+        # Enable-VMTPM -VMName $Name # Wichtig für Win11
+        
+        Write-Host " -> VM erstellt und konfiguriert." -ForegroundColor Green
+    }
+
+    # 3. VM Starten & Karten im Gast umbenennen
+    if ((Get-VM -Name $Name).State -ne 'Running') {
+        Start-VM -Name $Name
+        Write-Host " -> VM gestartet. Warte auf Boot..." -ForegroundColor Yellow
+        
+        # Warten bis PowerShell im Gast bereit ist (kann bei sysprep 1-2 Min dauern)
+        # Wir prüfen in einer Schleife, ob der Gast erreichbar ist
+        do { Start-Sleep -Seconds 5 } until (Get-VM -Name $Name | Where-Object { $_.State -eq 'Running' -and $_.Uptime.TotalSeconds -gt 10 })
+    }
+
+    Write-Host " -> Versuche Netzwerkkarten im Gast umzubenennen..." -ForegroundColor Cyan
+    
+    # Dieser Block wird IM GAST ausgeführt (PowerShell Direct)
+    Invoke-Command -VMName $Name -Credential $GuestCreds -ScriptBlock {
+        # Holt sich alle Adapter im Gast
+        $Adapters = Get-NetAdapter
+        
+        foreach ($Nic in $Adapters) {
+            # Liest den "DeviceNaming" Namen aus, den wir am Host gesetzt haben
+            # Die Property heißt im Treiber "Hyper-V Network Adapter Name"
+            $HostName = ($Nic | Get-NetAdapterAdvancedProperty -RegistryKeyword "HyperVNetworkAdapterName" -ErrorAction SilentlyContinue).DisplayValue
+            
+            if ($HostName -and $HostName -ne $Nic.Name) {
+                Rename-NetAdapter -Name $Nic.Name -NewName $HostName -Confirm:$false
+                Write-Output "Gast-NIC '$($Nic.Name)' umbenannt in '$HostName'"
+            }
+        }
+    } -ErrorAction SilentlyContinue
 
     Write-Host " -> Fertig." -ForegroundColor Green
 }
