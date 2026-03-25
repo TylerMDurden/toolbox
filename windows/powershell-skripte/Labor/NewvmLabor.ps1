@@ -1,24 +1,24 @@
 ﻿##################################################
 ###### VIT-Labor mit einem Script erstellen ######
-######               V 5.3                  ######
+######               V 5.4                  ######
 ##################################################
-# zusätzliche Switch erstellen
+# Netzwerkartennamen
 
 # Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
 
 # --- KONFIGURATION DER VMS ---
 # Hier trägst du alle VMs ein, die erstellt werden sollen
 $VMListe = @(
-    @{ Name = "Test-CL-A-Stadt";      OS = "Client"; Switch = "T-A-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test-CL-B-Stadt";      OS = "Client"; Switch = "T-B-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test-CL-C-Stadt";      OS = "Client"; Switch = "T-C-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test-CL-D-Stadt";      OS = "Client"; Switch = "T-D-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test-Router-A-Stadt";  OS = "Server"; Switch = "T-A-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test-Router-B-Stadt";  OS = "Server"; Switch = "T-B-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test-Router-C-Stadt";  OS = "Server"; Switch = "T-C-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test-Router-D-Stadt";  OS = "Server"; Switch = "T-D-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test-DHCP-1";          OS = "Server"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB },
-    @{ Name = "Test-DHCP-2";          OS = "Server"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB }
+   # @{ Name = "Test-CL-A-Stadt";      OS = "Client"; Switch = "T-A-Stadt";      CPU = 2; RAM = 2GB },
+   # @{ Name = "Test-CL-B-Stadt";      OS = "Client"; Switch = "T-B-Stadt";      CPU = 2; RAM = 2GB },
+   # @{ Name = "Test-CL-C-Stadt";      OS = "Client"; Switch = "T-C-Stadt";      CPU = 2; RAM = 2GB },
+   # @{ Name = "Test-CL-D-Stadt";      OS = "Client"; Switch = "T-D-Stadt";      CPU = 2; RAM = 2GB },
+   # @{ Name = "Test-Router-A-Stadt";  OS = "Server"; Switch = "T-A-Stadt";      CPU = 4; RAM = 2GB },
+   # @{ Name = "Test-Router-B-Stadt";  OS = "Server"; Switch = "T-B-Stadt";      CPU = 4; RAM = 2GB },
+   # @{ Name = "Test-Router-C-Stadt";  OS = "Server"; Switch = "T-C-Stadt";      CPU = 4; RAM = 2GB },
+   # @{ Name = "Test-Router-D-Stadt";  OS = "Server"; Switch = "T-D-Stadt";      CPU = 4; RAM = 2GB },
+   # @{ Name = "Test-DHCP-1";          OS = "Server"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB },
+    @{ Name = "Test3-DHCP-2";          OS = "Server"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB }
 )
 
 # --- ZUSÄTZLICHE SWITCH ---
@@ -29,10 +29,16 @@ $SwitchListe = @("Test-Backbone_two")
 $vmStart = "nein"
 
 # --- GLOBALE PFADE ---
-$BaseDir = "C:\HyperV"
+# $BaseDir = "C:\HyperV"   # Haus A6
+$BaseDir = "D:\Hyper-V"     # Haus W10
+
 $VMPath = "$BaseDir\VM" 
 $VHDXPath = "$BaseDir\VHDX"
-$SysPrepPath = "C:\SysPrep"
+
+# $SysPrepPath = "C:\SysPrep"   # Haus A6
+$SysPrepPath = "$BaseDir\SysPrep"   # Haus W10
+
+
 $logPath = "$BaseDir\_log"
 
 
@@ -138,12 +144,20 @@ foreach ($VM in $VMListe) {
 
     # 6. VM erstellen
     Write-Host "  -> Erstelle VM..." -ForegroundColor DarkGray
-    New-VM -Name $VMName -VHDPath $NewVHDXFile -Generation 2 -SwitchName $VMSwitch -Path $VMPath | Out-Null
+    New-VM -Name $VMName -VHDPath $NewVHDXFile -Generation 2 -Path $VMPath | Out-Null #  -SwitchName $VMSwitch
 
     # 7. Hardware konfigurieren
+    # Add-VMNetworkAdapter -VMName $VMName -SwitchName $SwitchName -Passthru | Rename-VMNetworkAdapter -NewName "LAN"
+    # Add-VMNetworkAdapter -VMName $VMName -SwitchName "T-Backbone_one" -Name "Lan"
+    Add-VMNetworkAdapter -VMName $VMName -SwitchName "T-Backbone_one" -Passthru | Rename-VMNetworkAdapter -NewName "LAN"
+
     Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $true -StartupBytes $RAMSize # MinimumBytes 512MB -MaximumBytes $RAMSize bleibt auf Standard
     Set-VMProcessor -VMName $VMName -Count $CPUCount
     Set-VM -Name $VMName -CheckpointType Disabled
+
+    # 7a. Erste NIC umbenennen (von "Network Adapter" zu "LAN")
+    # Write-Host "  -> Benenne primäre NIC in 'LAN' um..." -ForegroundColor DarkGray
+    # Rename-VMNetworkAdapter -VMName $VMName -Name "Network Adapter" -NewName "LAN"
 
     Write-Host "  -> ERFOLG: $VMName wurde erstellt." -ForegroundColor Green
     
