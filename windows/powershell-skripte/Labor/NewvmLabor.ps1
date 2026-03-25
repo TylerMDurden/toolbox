@@ -9,6 +9,19 @@ $VMListe = @(
     @{ Name = "Test-Srv"; OS = "Server"; Switch = "A-Stadt"; CPU = 4 }
 )
 
+# --- sollen die erstellten VMs sofort gestarten werden ---
+
+$vmStart = "nein"
+
+# --- GLOBALE PFADE ---
+$BaseDir = "C:\HyperV"
+$VMPath = "$BaseDir\VM" 
+$VHDXPath = "$BaseDir\VHDX"
+
+# SysPrep-Quellen
+$SourceClient = "C:\SysPrep\Win11-SysPrep.vhdx"
+$SourceServer = "C:\SysPrep\S-2022-sysprep_10_07_2025.vhdx"
+
 # --- Überprüfen, ob das Scrpt mit Admin-Rechten gestartet wurde ---
 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
@@ -24,15 +37,6 @@ if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Adm
 Write-Host "Adminrechte bestätigt. Skript wird ausgeführt..." -ForegroundColor Green
 
 
-
-# --- GLOBALE PFADE ---
-$BaseDir = "C:\HyperV"
-$VMPath = "$BaseDir\VM" 
-$VHDXPath = "$BaseDir\VHDX"
-
-# SysPrep-Quellen
-$SourceClient = "C:\SysPrep\Win11-SysPrep.vhdx"
-$SourceServer = "C:\SysPrep\S-2022-sysprep_10_07_2025.vhdx"
 
 Clear-Host
 Write-Host "Starte Massenerstellung von $($VMListe.Count) VMs..." -ForegroundColor Magenta
@@ -105,7 +109,10 @@ foreach ($VM in $VMListe) {
     Write-Host "  -> ERFOLG: $VMName wurde erstellt." -ForegroundColor Green
     
     # Optional: Starten
-    # Start-VM -Name $VMName
+    if($vmStart -eq "ja") {
+        Start-VM -Name $VMName
+        Write-Host "  -> Die VM $VMName wurde gestartet." -ForegroundColor Green
+    }
 }
 
 # --- ABSCHLUSS ---
