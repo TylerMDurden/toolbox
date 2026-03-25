@@ -1,11 +1,14 @@
-﻿#Erstellen einer Client VM aus einer SysPrep
+﻿#Erstellen einer Server/Router VM  oder Client VM aus einer SysPrep
 
-# Variablen für die neue VM
+# Name der neuen VM
 $VMName = "DHCP-2"
 $VMSwitch = "A-Stadt"
+
+# allgemeine Variablen
 $VMPath = "C:\HyperV\VM" # optional
-$ParentVHDX = "C:\SysPrep\S-2022-sysprep_10_07_2025.vhdx" # Client SysPrep
-$NewVHDX = "C:\HyperV\VHDX\HDD-DHCP-2.vhdx"
+# $ParentVHDX = "C:\SysPrep\Win11-SysPrep.vhdx"# Client SysPrep
+$ParentVHDX = "C:\SysPrep\S-2022-sysprep_10_07_2025.vhdx" # Server SysPrep
+$NewVHDX = "C:\HyperV\VHDX\HDD-$VMName.vhdx"
 
 # Neuen differenzierenden Datenträger aus SysPrep erstellen 
 New-VHD -ParentPath $ParentVHDX -Path $NewVHDX -Differencing
