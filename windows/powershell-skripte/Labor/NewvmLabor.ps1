@@ -1,12 +1,23 @@
-﻿# Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
+﻿##################################################
+###### VIT-Labor mit einem Script erstellen ######
+######               V 5.0                  ######
+##################################################
+
+# Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
 
 # --- KONFIGURATION DER VMS ---
 # Hier trägst du alle VMs ein, die erstellt werden sollen
 $VMListe = @(
-    # @{ Name = "DC-01";      OS = "Server"; Switch = "Intern-Netz"; CPU = 2 },
-    # @{ Name = "Router-01";  OS = "Server"; Switch = "Intern-Netz"; CPU = 2 },
-    # @{ Name = "Win11-Cli1"; OS = "Client"; Switch = "Intern-Netz"; CPU = 4 },
-    @{ Name = "Test-Srv"; OS = "Server"; Switch = "A-Stadt"; CPU = 4 }
+    @{ Name = "Test-CL-A-Stadt";      OS = "Client"; Switch = "T-A-Stadt";      CPU = 2 },
+    @{ Name = "Test-CL-B-Stadt";      OS = "Client"; Switch = "T-B-Stadt";      CPU = 2 },
+    @{ Name = "Test-CL-C-Stadt";      OS = "Client"; Switch = "T-C-Stadt";      CPU = 2 },
+    @{ Name = "Test-CL-D-Stadt";      OS = "Client"; Switch = "T-D-Stadt";      CPU = 2 },
+    @{ Name = "Test-Router-A-Stadt";  OS = "Server"; Switch = "T-A-Stadt";      CPU = 4 },
+    @{ Name = "Test-Router-B-Stadt";  OS = "Server"; Switch = "T-B-Stadt";      CPU = 4 },
+    @{ Name = "Test-Router-C-Stadt";  OS = "Server"; Switch = "T-C-Stadt";      CPU = 4 },
+    @{ Name = "Test-Router-D-Stadt";  OS = "Server"; Switch = "T-D-Stadt";      CPU = 4 },
+    @{ Name = "Test-DHCP-1";          OS = "Client"; Switch = "T-Backbone_one"; CPU = 4 },
+    @{ Name = "Test-DHCP-2";          OS = "Client"; Switch = "T-Backbone_one"; CPU = 4 }
 )
 
 # --- sollen die erstellten VMs sofort gestarten werden ---
