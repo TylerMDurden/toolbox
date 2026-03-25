@@ -1,71 +1,88 @@
-﻿# Mehrere Clients aus der Sysprep mit differenzierender HDD erstellen
-
-# --- Globale Variablen (bleiben für alle gleich) ---
+﻿# --- Globale Variablen ---
 $VMPath     = "C:\HyperV\VM" 
-$ParentVHDX = "C:\SysPrep\Win11-SysPrep.vhdx" # Win 11 Clients
+$ParentVHDX = "C:\SysPrep\Win11-SysPrep.vhdx" 
 $VHDXFolder = "C:\HyperV\VHDX"
 
-# --- Die Liste der zu erstellenden VMs ---
-# Hier definieren Sie Name und Switch. Sie können beliebig viele Zeilen hinzufügen.
+# --- Liste der VMs mit benannten Netzwerkkarten ---
 $VMList = @(
-    @{ Name = "CL-E-Stadt"; Switch = "E-Stadt" },
-    @{ Name = "CL-F-Stadt"; Switch = "F-Stadt" },
-    @{ Name = "CL-G-Stadt"; Switch = "G-Stadt" },
-    @{ Name = "CL-H-Stadt"; Switch = "H-Stadt" }
+    @{ 
+        VMName  = "Test-A"; 
+        # Karte 1
+        Switch1 = "A-Stadt";     NetName1 = "A-Stadt";
+        # Karte 2
+        Switch2 = "Backup_one"; NetName2 = "Backbone_one";
+        # Karte 3
+        Switch3 = "Backbone_two";  NetName3 = "Backbone_two"
+    },
+    @{ 
+        VMName  = "Test-B"; 
+        Switch1 = "B-Stadt";     NetName1 = "LAN-Intern";
+        Switch2 = "Backbone_one";    NetName2 = "Backbone_one";
+        Switch3 = "";            NetName3 = "" # Hat nur 2 Karten
+    }
 )
 
-# --- Ordner-Check (nur einmalig nötig) ---
+# --- Ordner-Check ---
 if (!(Test-Path $VHDXFolder)) { New-Item -ItemType Directory -Force -Path $VHDXFolder | Out-Null }
 if (!(Test-Path $VMPath))     { New-Item -ItemType Directory -Force -Path $VMPath | Out-Null }
 
-# --- SCHLEIFE: Geht jeden Eintrag in der Liste durch ---
+# --- SCHLEIFE ---
 foreach ($Item in $VMList) {
     
-    $CurrentName   = $Item.Name
-    $CurrentSwitch = $Item.Switch
-    
-    # Dynamischer VHDX Name: z.B. "HDD-CL-A-Stadt.vhdx"
-    $CurrentVHDX   = "$VHDXFolder\HDD-$CurrentName.vhdx"
+    $Name = $Item.VMName
+    $NewVHDX = "$VHDXFolder\HDD-$Name.vhdx"
 
     Write-Host "---------------------------------------------"
-    Write-Host "Verarbeite: $CurrentName an Switch $CurrentSwitch" -ForegroundColor Cyan
+    Write-Host "Verarbeite: $Name" -ForegroundColor Cyan
 
-    # 1. Prüfen, ob VM schon existiert (verhindert Fehler beim mehrmaligen Ausführen)
-    if (Get-VM -Name $CurrentName -ErrorAction SilentlyContinue) {
-        Write-Host "ACHTUNG: VM '$CurrentName' existiert bereits. Überspringe..." -ForegroundColor Yellow
-        continue # Springt zum nächsten Eintrag in der Liste
+    # 1. Check ob VM existiert
+    if (Get-VM -Name $Name -ErrorAction SilentlyContinue) {
+        Write-Host "VM '$Name' existiert bereits." -ForegroundColor Yellow
+        continue
     }
 
-    # 2. Differenzierende Disk erstellen
-    # Prüfen ob Disk schon existiert
-    if (!(Test-Path $CurrentVHDX)) {
-        New-VHD -ParentPath $ParentVHDX -Path $CurrentVHDX -Differencing | Out-Null
-        Write-Host " -> VHDX erstellt." -ForegroundColor Green
-    } else {
-        Write-Host " -> VHDX existiert bereits, nutze vorhandene." -ForegroundColor Yellow
+    # 2. Disk erstellen
+    if (!(Test-Path $NewVHDX)) {
+        New-VHD -ParentPath $ParentVHDX -Path $NewVHDX -Differencing | Out-Null
     }
 
-    # 3. VM erstellen
-    # Hinweis: Wir fangen Fehler ab, falls der Switch nicht existiert
+    # 3. VM erstellen (OHNE Switch, damit wir Namen sauber setzen können)
     try {
-        New-VM -Name $CurrentName -VHDPath $CurrentVHDX -Generation 2 -SwitchName $CurrentSwitch -Path $VMPath -ErrorAction Stop | Out-Null
+        New-VM -Name $Name -VHDPath $NewVHDX -Generation 2 -Path $VMPath -ErrorAction Stop | Out-Null
         Write-Host " -> VM Container erstellt." -ForegroundColor Green
     }
     catch {
-        Write-Host "FEHLER: Konnte VM nicht erstellen. Existiert der Switch '$CurrentSwitch'?" -ForegroundColor Red
-        continue # Abbruch für diese VM, weiter zur nächsten
+        Write-Host "FEHLER beim Erstellen der VM '$Name'." -ForegroundColor Red
+        continue
     }
 
-    # 4. Hardware konfigurieren
-    Set-VMMemory -VMName $CurrentName -DynamicMemoryEnabled $true -StartupBytes 2GB -MinimumBytes 512MB -MaximumBytes 4GB
-    Set-VMProcessor -VMName $CurrentName -Count 10
-    Set-VM -Name $CurrentName -CheckpointType Disabled
+    # 4. Netzwerkkarten hinzufügen und benennen
 
-    Write-Host " -> Konfiguration abgeschlossen." -ForegroundColor Green
+    # --- Karte 1 ---
+    if ($Item.Switch1) {
+        Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch1 -Name $Item.NetName1
+        Write-Host " -> NIC '$($Item.NetName1)' an Switch '$($Item.Switch1)' hinzugefügt." -ForegroundColor Green
+    }
+
+    # --- Karte 2 ---
+    if ($Item.Switch2) {
+        Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch2 -Name $Item.NetName2
+        Write-Host " -> NIC '$($Item.NetName2)' an Switch '$($Item.Switch2)' hinzugefügt." -ForegroundColor Green
+    }
+
+    # --- Karte 3 ---
+    if ($Item.Switch3) {
+        Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch3 -Name $Item.NetName3
+        Write-Host " -> NIC '$($Item.NetName3)' an Switch '$($Item.Switch3)' hinzugefügt." -ForegroundColor Green
+    }
+
+    # 5. Hardware & TPM konfigurieren
+    Set-VMMemory -VMName $Name -DynamicMemoryEnabled $true -StartupBytes 2GB -MinimumBytes 512MB -MaximumBytes 4GB
+    Set-VMProcessor -VMName $Name -Count 4 # Angepasst auf 4 Kerne (realistischer)
+    Set-VM -Name $Name -CheckpointType Disabled
     
-    # Optional: Starten
-    # Start-VM -Name $CurrentName
-}
+    # Optional: DeviceNaming aktivieren (hilft manchmal, die Namen ins Windows-Gast-OS durchzureichen)
+    # Set-VMNetworkAdapter -VMName $Name -DeviceNaming On
 
-Write-Host "---------------------------------------------"
-Write-Host "Alle Aufgaben erledigt." -ForegroundColor Green
+    Write-Host " -> Fertig." -ForegroundColor Green
+}
