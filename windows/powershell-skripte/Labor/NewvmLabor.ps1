@@ -1,8 +1,8 @@
 ﻿##################################################
 ###### VIT-Labor mit einem Script erstellen ######
-######               V 5.6                  ######
+######               V 5.7                  ######
 ##################################################
-# zusätzliche Switch
+# kleine Verbesserungen
 
 # Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
 
@@ -27,7 +27,7 @@ $SwitchListe = @("Backbone_two")
 
 # --- sollen die erstellten VMs sofort gestarten werden ---
 
-$vmStart = "nein"
+$vmStart = $false # $true
 
 # --- GLOBALE PFADE ---
 $BaseDir = "C:\HyperV"
@@ -63,8 +63,8 @@ Write-Host "---------------------------------------------"
 
 # --- GLOBALE CHECKS (Bevor es losgeht) ---
 # Prüfen, ob die Ordner existieren
-if (-not (Test-Path $VMPath)) { Write-Host "FEHLER: Ordner fehlt: $VMPath" -ForegroundColor Red; return }
-if (-not (Test-Path $VHDXPath)) { Write-Host "FEHLER: Ordner fehlt: $VHDXPath" -ForegroundColor Red; return }
+if (-not (Test-Path $VMPath)) { Write-Host "FEHLER: Ordner fehlt: $VMPath" -ForegroundColor Red; exit 1 }
+if (-not (Test-Path $VHDXPath)) { Write-Host "FEHLER: Ordner fehlt: $VHDXPath" -ForegroundColor Red; exit 1 }
 if (-not (Test-Path $logPath)) {
     # Versuchen, den Ordner zu erstellen
     try {
@@ -74,13 +74,13 @@ if (-not (Test-Path $logPath)) {
     catch {
         # Nur wenn das Erstellen fehlschlägt, brechen wir wirklich ab
         Write-Host "KRITISCH: Konnte Ordner nicht erstellen: $logPath" -ForegroundColor Red
-        return
+        exit 1
     }
 }
 
 # Prüfen, ob die Images existieren
-if (-not (Test-Path $SourceClient)) { Write-Host "FEHLER: Client-Image fehlt: $SourceClient" -ForegroundColor Red; return }
-if (-not (Test-Path $SourceServer)) { Write-Host "FEHLER: Server-Image fehlt: $SourceServer" -ForegroundColor Red; return }
+if (-not (Test-Path $SourceClient)) { Write-Host "FEHLER: Client-Image fehlt: $SourceClient" -ForegroundColor Red; exit 1 }
+if (-not (Test-Path $SourceServer)) { Write-Host "FEHLER: Server-Image fehlt: $SourceServer" -ForegroundColor Red; exit 1 }
 
 
 
@@ -142,7 +142,7 @@ foreach ($VM in $VMListe) {
     Write-Host "  -> ERFOLG: $VMName wurde erstellt." -ForegroundColor Green
     
     # Optional: Starten
-    if($vmStart -eq "ja") {
+    if($vmStart) {
         Start-VM -Name $VMName
         Write-Host "  -> Die VM $VMName wurde gestartet." -ForegroundColor Green
     }
