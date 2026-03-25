@@ -1,25 +1,29 @@
 ﻿##################################################
 ###### VIT-Labor mit einem Script erstellen ######
-######               V 5.5                  ######
+######               V 5.6                  ######
 ##################################################
-# Ordnerstruktur angepasst
+# zusätzliche Switch
 
 # Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
 
 # --- KONFIGURATION DER VMS ---
 # Hier trägst du alle VMs ein, die erstellt werden sollen
 $VMListe = @(
-    @{ Name = "Test9-CL-A-Stadt";      OS = "Client"; Switch = "T9-A-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-CL-B-Stadt";      OS = "Client"; Switch = "T9-B-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-CL-C-Stadt";      OS = "Client"; Switch = "T9-C-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-CL-D-Stadt";      OS = "Client"; Switch = "T9-D-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-Router-A-Stadt";  OS = "Server"; Switch = "T9-A-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-Router-B-Stadt";  OS = "Server"; Switch = "T9-B-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-Router-C-Stadt";  OS = "Server"; Switch = "T9-C-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-Router-D-Stadt";  OS = "Server"; Switch = "T9-D-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-DHCP-1";          OS = "Client"; Switch = "T9-Backbone_one"; CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-DHCP-2";          OS = "Client"; Switch = "T9-Backbone_one"; CPU = 4; RAM = 2GB }
+    # @{ Name = "CL-A-Stadt";      OS = "Client"; Switch = "A-Stadt";      CPU = 2; RAM = 2GB },
+    # @{ Name = "CL-B-Stadt";      OS = "Client"; Switch = "B-Stadt";      CPU = 2; RAM = 2GB },
+    # @{ Name = "CL-C-Stadt";      OS = "Client"; Switch = "C-Stadt";      CPU = 2; RAM = 2GB },
+    # @{ Name = "CL-D-Stadt";      OS = "Client"; Switch = "D-Stadt";      CPU = 2; RAM = 2GB },
+    # @{ Name = "Router-A-Stadt";  OS = "Server"; Switch = "A-Stadt";      CPU = 4; RAM = 2GB },
+    # @{ Name = "Router-B-Stadt";  OS = "Server"; Switch = "B-Stadt";      CPU = 4; RAM = 2GB },
+    # @{ Name = "Router-C-Stadt";  OS = "Server"; Switch = "C-Stadt";      CPU = 4; RAM = 2GB },
+    # @{ Name = "Router-D-Stadt";  OS = "Server"; Switch = "D-Stadt";      CPU = 4; RAM = 2GB },
+    # @{ Name = "DHCP-1";          OS = "Server"; Switch = "Backbone_one"; CPU = 4; RAM = 2GB },
+    # @{ Name = "DHCP-2";          OS = "Server"; Switch = "Backbone_one"; CPU = 4; RAM = 2GB },
+    @{ Name = "DC-1";          OS = "Server"; Switch ="A-Stadt"; CPU = 4; RAM = 2GB }
 )
+
+# --- ZUSÄTZLICHE SWITCH ---
+$SwitchListe = @("Backbone_two")
 
 # --- sollen die erstellten VMs sofort gestarten werden ---
 
@@ -29,7 +33,8 @@ $vmStart = "nein"
 $BaseDir = "C:\HyperV"
 $VMPath = "$BaseDir\VM" 
 $VHDXPath = "$BaseDir\VHDX"
-$SysPrepPath = "$BaseDir\SysPrep"
+$SysPrepPath = "C:\SysPrep"         # Haus A6
+# $SysPrepPath = "$BaseDir\SysPrep" # Haus W10
 $logPath = "$BaseDir\_log"
 
 # SysPrep-Quellen
@@ -76,6 +81,7 @@ if (-not (Test-Path $logPath)) {
 # Prüfen, ob die Images existieren
 if (-not (Test-Path $SourceClient)) { Write-Host "FEHLER: Client-Image fehlt: $SourceClient" -ForegroundColor Red; return }
 if (-not (Test-Path $SourceServer)) { Write-Host "FEHLER: Server-Image fehlt: $SourceServer" -ForegroundColor Red; return }
+
 
 
 # --- HAUPTSCHLEIFE (Geht jede VM durch) ---
@@ -141,6 +147,23 @@ foreach ($VM in $VMListe) {
         Write-Host "  -> Die VM $VMName wurde gestartet." -ForegroundColor Green
     }
 }
+Write-Host "---------------------------------------------"
+
+
+# --- NEU: ZUSÄTZLICHE SWITCHES VORAB ERSTELLEN ---
+Write-Host "Prüfe zusätzliche Switches aus der SwitchListe..." -ForegroundColor White
+foreach ($Switch in $SwitchListe) {
+    if (-not (Get-VMSwitch -Name $Switch -ErrorAction SilentlyContinue)) {
+        Write-Host "  -> Erstelle zusätzlichen Switch '$Switch' (Private)..." -ForegroundColor Cyan
+        New-VMSwitch -Name $Switch -SwitchType Private | Out-Null
+    } else {
+        Write-Host "  -> Zusatz-Switch '$Switch' existiert bereits." -ForegroundColor DarkGray
+    }
+}
+Write-Host "---------------------------------------------"
+
+
+
 
 # --- ABSCHLUSS ---
 Write-Host "---------------------------------------------"
