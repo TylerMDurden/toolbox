@@ -1,86 +1,121 @@
-﻿###  wollte hier automatisch die nic bei der gast vm umbenennen
-###  ist aber nicht so einfach möglich
+﻿# Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
 
-# --- Globale Variablen ---
-$VMPath     = "C:\HyperV\VM" 
-$ParentVHDX = "C:\SysPrep\Win11-SysPrep.vhdx" 
-$VHDXFolder = "C:\HyperV\VHDX"
-# Admin-Credentials für das Gast-OS (Nötig für das Umbenennen im Gast)
-$GuestCreds = Get-Credential -Message "Bitte Admin-Login für die VMS eingeben"
-
-# --- Liste der VMs ---
-$VMList = @(
-    @{ 
-        VMName  = "Test-D"; 
-        Switch1 = "D-Stadt";     NetName1 = "LAN-Intern";
-        Switch2 = "Backbone_one"; NetName2 = "Backbone_one";
-        Switch3 = "Backbone_two";  NetName3 = "Backbone_two"
-    }
-    # Weitere VMs hier...
+# --- KONFIGURATION DER VMS ---
+# Hier trägst du alle VMs ein, die erstellt werden sollen
+$VMListe = @(
+    # @{ Name = "DC-01";      OS = "Server"; Switch = "Intern-Netz"; CPU = 2 },
+    # @{ Name = "Router-01";  OS = "Server"; Switch = "Intern-Netz"; CPU = 2 },
+    # @{ Name = "Win11-Cli1"; OS = "Client"; Switch = "Intern-Netz"; CPU = 4 },
+    @{ Name = "Test-Srv"; OS = "Server"; Switch = "A-Stadt"; CPU = 4 }
 )
 
-# --- Ordner-Check ---
-if (!(Test-Path $VHDXFolder)) { New-Item -ItemType Directory -Force -Path $VHDXFolder | Out-Null }
-if (!(Test-Path $VMPath))     { New-Item -ItemType Directory -Force -Path $VMPath | Out-Null }
+# --- Überprüfen, ob das Scrpt mit Admin-Rechten gestartet wurde ---
+$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
 
-# --- SCHLEIFE ---
-foreach ($Item in $VMList) {
-    
-    $Name = $Item.VMName
-    $NewVHDX = "$VHDXFolder\HDD-$Name.vhdx"
-
-    Write-Host "---------------------------------------------"
-    Write-Host "Verarbeite: $Name" -ForegroundColor Cyan
-
-    # 1. Disk & VM erstellen (wie gehabt)
-    if (!(Test-Path $NewVHDX)) { New-VHD -ParentPath $ParentVHDX -Path $NewVHDX -Differencing | Out-Null }
-    
-    if (!(Get-VM -Name $Name -ErrorAction SilentlyContinue)) {
-        New-VM -Name $Name -VHDPath $NewVHDX -Generation 2 -Path $VMPath | Out-Null
-        
-        # 2. Netzwerkkarten hinzufügen & DeviceNaming aktivieren
-        # Das Feature "-DeviceNaming On" schreibt den Namen in ein spezielles Register der virtuellen Karte
-        if ($Item.Switch1) { Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch1 -Name $Item.NetName1 -DeviceNaming On }
-        if ($Item.Switch2) { Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch2 -Name $Item.NetName2 -DeviceNaming On }
-        if ($Item.Switch3) { Add-VMNetworkAdapter -VMName $Name -SwitchName $Item.Switch3 -Name $Item.NetName3 -DeviceNaming On }
-
-        # Hardware
-        Set-VMMemory -VMName $Name -DynamicMemoryEnabled $true -StartupBytes 2GB -MaximumBytes 4GB
-        Set-VMProcessor -VMName $Name -Count 4
-        Set-VM -Name $Name -CheckpointType Disabled
-        # Enable-VMTPM -VMName $Name # Wichtig für Win11
-        
-        Write-Host " -> VM erstellt und konfiguriert." -ForegroundColor Green
-    }
-
-    # 3. VM Starten & Karten im Gast umbenennen
-    if ((Get-VM -Name $Name).State -ne 'Running') {
-        Start-VM -Name $Name
-        Write-Host " -> VM gestartet. Warte auf Boot..." -ForegroundColor Yellow
-        
-        # Warten bis PowerShell im Gast bereit ist (kann bei sysprep 1-2 Min dauern)
-        # Wir prüfen in einer Schleife, ob der Gast erreichbar ist
-        do { Start-Sleep -Seconds 5 } until (Get-VM -Name $Name | Where-Object { $_.State -eq 'Running' -and $_.Uptime.TotalSeconds -gt 10 })
-    }
-
-    Write-Host " -> Versuche Netzwerkkarten im Gast umzubenennen..." -ForegroundColor Cyan
-    
-    # Dieser Block wird IM GAST ausgeführt (PowerShell Direct)
-    Invoke-Command -VMName $Name -Credential $GuestCreds -ScriptBlock {
-        # Holt sich alle Adapter im Gast
-        $Adapters = Get-NetAdapter
-        
-        foreach ($Nic in $Adapters) {
-            # Liest den "DeviceNaming" Namen aus, den wir am Host gesetzt haben
-            # Die Property heißt im Treiber "Hyper-V Network Adapter Name"
-            $HostName = ($Nic | Get-NetAdapterAdvancedProperty -RegistryKeyword "HyperVNetworkAdapterName" -ErrorAction SilentlyContinue).DisplayValue
-            
-            if ($HostName -and $HostName -ne $Nic.Name) {
-                Rename-NetAdapter -Name $Nic.Name -NewName $HostName -Confirm:$false
-                Write-Output "Gast-NIC '$($Nic.Name)' umbenannt in '$HostName'"
-            }
-        }
-    } -ErrorAction SilentlyContinue
-
-    Write-Host " -> Fertig." -ForegroundColor Green
+if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Warning "Dieses Skript benötigt Administratorrechte zur Ausführung."
+    Write-Warning "Bitte starten Sie die PowerShell-Konsole mit 'Als Administrator ausführen' und versuchen Sie es erneut."
+    # Das Skript wird hier anhalten. In einer Konsole stoppt es, in der ISE kann es weiterlaufen, daher 'exit'.
+    exit 1 # Beendet das Skript mit einem Fehlercode
 }
+
+# --- Wenn die Überprüfung erfolgreich war, geht es hier weiter ---
+Write-Host "Adminrechte bestätigt. Skript wird ausgeführt..." -ForegroundColor Green
+
+
+
+# --- GLOBALE PFADE ---
+$BaseDir = "C:\HyperV"
+$VMPath = "$BaseDir\VM" 
+$VHDXPath = "$BaseDir\VHDX"
+
+# SysPrep-Quellen
+$SourceClient = "C:\SysPrep\Win11-SysPrep.vhdx"
+$SourceServer = "C:\SysPrep\S-2022-sysprep_10_07_2025.vhdx"
+
+Clear-Host
+Write-Host "Starte Massenerstellung von $($VMListe.Count) VMs..." -ForegroundColor Magenta
+Write-Host "---------------------------------------------"
+
+# --- GLOBALE CHECKS (Bevor es losgeht) ---
+# Prüfen, ob die Ordner existieren
+if (-not (Test-Path $VMPath)) { Write-Host "FEHLER: Ordner fehlt: $VMPath" -ForegroundColor Red; return }
+if (-not (Test-Path $VHDXPath)) { Write-Host "FEHLER: Ordner fehlt: $VHDXPath" -ForegroundColor Red; return }
+
+# Prüfen, ob die Images existieren
+if (-not (Test-Path $SourceClient)) { Write-Host "FEHLER: Client-Image fehlt: $SourceClient" -ForegroundColor Red; return }
+if (-not (Test-Path $SourceServer)) { Write-Host "FEHLER: Server-Image fehlt: $SourceServer" -ForegroundColor Red; return }
+
+
+# --- HAUPTSCHLEIFE (Geht jede VM durch) ---
+
+foreach ($VM in $VMListe) {
+    
+    # Werte aus der Liste in Variablen laden
+    $VMName   = $VM.Name
+    $OS       = $VM.OS
+    $VMSwitch = $VM.Switch
+    $CPUCount = $VM.CPU
+    
+    # Pfad für die neue Festplatte bauen
+    $NewVHDXFile = "$VHDXPath\HDD-$VMName.vhdx"
+
+    Write-Host "`nVerarbeite: $VMName ($OS)..." -ForegroundColor White
+
+    # 1. Prüfen, ob VM schon existiert
+    if (Get-VM -Name $VMName -ErrorAction SilentlyContinue) {
+        Write-Host "  -> ÜBERSPRUNGEN: VM '$VMName' existiert bereits." -ForegroundColor Yellow
+        continue # Springt zur nächsten VM in der Liste
+    }
+
+    # 2. Prüfen, ob VHDX schon existiert
+    if (Test-Path $NewVHDXFile) {
+        Write-Host "  -> ÜBERSPRUNGEN: VHDX '$NewVHDXFile' existiert bereits." -ForegroundColor Yellow
+        continue
+    }
+
+    # 3. Das richtige Image wählen
+    if ($OS -eq "Client") { $ParentVHDX = $SourceClient }
+    elseif ($OS -eq "Server") { $ParentVHDX = $SourceServer }
+    else {
+        Write-Host "  -> FEHLER: Unbekanntes OS '$OS' bei VM $VMName." -ForegroundColor Red
+        continue
+    }
+
+    # 4. Switch prüfen/erstellen
+    if (-not (Get-VMSwitch -Name $VMSwitch -ErrorAction SilentlyContinue)) {
+        Write-Host "  -> Erstelle Switch '$VMSwitch' (Private)..." -ForegroundColor Cyan
+        New-VMSwitch -Name $VMSwitch -SwitchType Private | Out-Null
+    }
+
+    # 5. Differenzierende Disk erstellen
+    Write-Host "  -> Erstelle VHDX..." -ForegroundColor DarkGray
+    New-VHD -ParentPath $ParentVHDX -Path $NewVHDXFile -Differencing | Out-Null
+
+    # 6. VM erstellen
+    Write-Host "  -> Erstelle VM..." -ForegroundColor DarkGray
+    New-VM -Name $VMName -VHDPath $NewVHDXFile -Generation 2 -SwitchName $VMSwitch -Path $VMPath | Out-Null
+
+    # 7. Hardware konfigurieren
+    Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $true -StartupBytes 2GB
+    Set-VMProcessor -VMName $VMName -Count $CPUCount
+    Set-VM -Name $VMName -CheckpointType Disabled
+
+    Write-Host "  -> ERFOLG: $VMName wurde erstellt." -ForegroundColor Green
+    
+    # Optional: Starten
+    # Start-VM -Name $VMName
+}
+
+# --- ABSCHLUSS ---
+Write-Host "---------------------------------------------"
+Write-Host "Alle Aufgaben erledigt." -ForegroundColor Cyan
+
+# ----- Infos für Micha -----
+Write-Host
+Write-Host "So Micha..." -ForegroundColor Magenta
+Write-Host "* Computernamen in den VMs ändern!" -ForegroundColor Magenta
+Write-Host "* NIC umbennen!" -ForegroundColor Magenta
+Write-Host "* evtl. weitere NICs hinzufügen und umbennen!" -ForegroundColor Magenta
+Write-Host "Viel Erfolg und Spaß" -ForegroundColor Magenta
