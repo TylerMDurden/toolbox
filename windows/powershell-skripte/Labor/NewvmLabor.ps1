@@ -1,6 +1,6 @@
 ﻿##################################################
 ###### VIT-Labor mit einem Script erstellen ######
-######               V 5.0                  ######
+######               V 5.1                  ######
 ##################################################
 
 # Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
@@ -8,16 +8,16 @@
 # --- KONFIGURATION DER VMS ---
 # Hier trägst du alle VMs ein, die erstellt werden sollen
 $VMListe = @(
-    @{ Name = "Test-CL-A-Stadt";      OS = "Client"; Switch = "T-A-Stadt";      CPU = 2 },
-    @{ Name = "Test-CL-B-Stadt";      OS = "Client"; Switch = "T-B-Stadt";      CPU = 2 },
-    @{ Name = "Test-CL-C-Stadt";      OS = "Client"; Switch = "T-C-Stadt";      CPU = 2 },
-    @{ Name = "Test-CL-D-Stadt";      OS = "Client"; Switch = "T-D-Stadt";      CPU = 2 },
-    @{ Name = "Test-Router-A-Stadt";  OS = "Server"; Switch = "T-A-Stadt";      CPU = 4 },
-    @{ Name = "Test-Router-B-Stadt";  OS = "Server"; Switch = "T-B-Stadt";      CPU = 4 },
-    @{ Name = "Test-Router-C-Stadt";  OS = "Server"; Switch = "T-C-Stadt";      CPU = 4 },
-    @{ Name = "Test-Router-D-Stadt";  OS = "Server"; Switch = "T-D-Stadt";      CPU = 4 },
-    @{ Name = "Test-DHCP-1";          OS = "Client"; Switch = "T-Backbone_one"; CPU = 4 },
-    @{ Name = "Test-DHCP-2";          OS = "Client"; Switch = "T-Backbone_one"; CPU = 4 }
+    @{ Name = "Test-CL-A-Stadt";      OS = "Client"; Switch = "T-A-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-CL-B-Stadt";      OS = "Client"; Switch = "T-B-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-CL-C-Stadt";      OS = "Client"; Switch = "T-C-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-CL-D-Stadt";      OS = "Client"; Switch = "T-D-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-Router-A-Stadt";  OS = "Server"; Switch = "T-A-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-Router-B-Stadt";  OS = "Server"; Switch = "T-B-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-Router-C-Stadt";  OS = "Server"; Switch = "T-C-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-Router-D-Stadt";  OS = "Server"; Switch = "T-D-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-DHCP-1";          OS = "Client"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB },
+    @{ Name = "Test-DHCP-2";          OS = "Client"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB }
 )
 
 # --- sollen die erstellten VMs sofort gestarten werden ---
@@ -28,6 +28,7 @@ $vmStart = "nein"
 $BaseDir = "C:\HyperV"
 $VMPath = "$BaseDir\VM" 
 $VHDXPath = "$BaseDir\VHDX"
+
 
 # SysPrep-Quellen
 $SourceClient = "C:\SysPrep\Win11-SysPrep.vhdx"
@@ -72,7 +73,8 @@ foreach ($VM in $VMListe) {
     $OS       = $VM.OS
     $VMSwitch = $VM.Switch
     $CPUCount = $VM.CPU
-    
+    $RAMSize  = $VM.RAM
+
     # Pfad für die neue Festplatte bauen
     $NewVHDXFile = "$VHDXPath\HDD-$VMName.vhdx"
 
@@ -113,7 +115,7 @@ foreach ($VM in $VMListe) {
     New-VM -Name $VMName -VHDPath $NewVHDXFile -Generation 2 -SwitchName $VMSwitch -Path $VMPath | Out-Null
 
     # 7. Hardware konfigurieren
-    Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $true -StartupBytes 2GB
+    Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $true -StartupBytes $RAMSize # MinimumBytes 512MB -MaximumBytes $RAMSize bleibt auf Standard
     Set-VMProcessor -VMName $VMName -Count $CPUCount
     Set-VM -Name $VMName -CheckpointType Disabled
 
