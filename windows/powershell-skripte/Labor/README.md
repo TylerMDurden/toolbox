@@ -60,7 +60,7 @@ $vmStart = "nein"                  # "ja" um VMs sofort zu starten
 
 ```powershell
 # PowerShell als Administrator öffnen
-.\NewvmallV56.ps1
+.\NewvmLabor.ps1
 ```
 
 Das Script prüft automatisch:
@@ -85,6 +85,20 @@ Folgende Schritte sind nach dem Script noch manuell nötig:
 
 | Version | Änderung |
 |---------|----------|
-| V 1.x | Grundversion, manuelle Einzelerstellung |
-| ... | ... |
-| V 5.6 | Aktuelle Version – vollautomatisches Deployment mit Switch-Liste, Log-Ordner, Admin-Check |
+| v1 | Einzelne VM aus bestehender VHDX erstellen |
+| v2.0 | Umstieg auf SysPrep mit differenzierender Disk |
+| v2.1 | VHDX-Pfad dynamisch aus VM-Name generiert |
+| v2.2 | Fehlerprüfung für SysPrep, Ordner und Switch hinzugefügt |
+| v2.3 | OS-Variable eingeführt, Client/Server-Auswahl, vollständige Validierung |
+| v3.0 | Massenproduktion – Schleife für mehrere VMs gleichzeitig |
+| v3.1 | Mehrere NICs pro VM mit individuellen Namen konfigurierbar |
+| v3.2 | Experiment: NIC-Umbenennen im Gast via PowerShell Direct |
+| v4.0 | Umbenennung – Script zu vollständigem Labor-Deployment zusammengeführt |
+| v4.1 | `vmStart`-Variable – optionaler Auto-Start der VMs |
+| v5.0 | Versionskopfzeile eingeführt, vollständige Labor-VM-Liste |
+| v5.1 | RAM als konfigurierbare Variable pro VM |
+| v5.11 | SysPrep-Pfad in BaseDir verschoben, Log-Ordner hinzugefügt |
+| v5.3 | SwitchListe für zusätzliche Switches, Transcript-Logging |
+| v5.4 | Zwei-Standort-Unterstützung (Haus A6/W10), NIC-Umbenennung per Passthru |
+| v5.5 | Log-Ordner wird automatisch erstellt falls fehlend |
+| **v5.6** | **Aktuelle Version** – SwitchListe ans Ende verschoben, produktionsreife VM-Liste |
