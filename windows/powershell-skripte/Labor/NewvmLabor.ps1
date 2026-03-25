@@ -1,8 +1,8 @@
 ﻿##################################################
 ###### VIT-Labor mit einem Script erstellen ######
-######               V 5.7                  ######
+######               V 5.8                  ######
 ##################################################
-# kleine Verbesserungen
+# try/catch bei 5/6/7
 
 # Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
 
@@ -128,16 +128,37 @@ foreach ($VM in $VMListe) {
 
     # 5. Differenzierende Disk erstellen
     Write-Host "  -> Erstelle VHDX..." -ForegroundColor DarkGray
-    New-VHD -ParentPath $ParentVHDX -Path $NewVHDXFile -Differencing | Out-Null
+	try {
+		New-VHD -ParentPath $ParentVHDX -Path $NewVHDXFile -Differencing | Out-Null
+		Write-Host "  -> VHDX erstellt." -ForegroundColor DarkGray
+	}
+	catch {
+		Write-Host "  -> FEHLER bei VHDX-Erstellung: $_" -ForegroundColor Red
+		continue
+	}
 
     # 6. VM erstellen
     Write-Host "  -> Erstelle VM..." -ForegroundColor DarkGray
-    New-VM -Name $VMName -VHDPath $NewVHDXFile -Generation 2 -SwitchName $VMSwitch -Path $VMPath | Out-Null
+    try {
+		New-VM -Name $VMName -VHDPath $NewVHDXFile -Generation 2 -SwitchName $VMSwitch -Path $VMPath | Out-Null
+		Write-Host "  -> VM erstellt." -ForegroundColor DarkGray
+	}
+	catch {
+		Write-Host "  -> FEHLER bei VM-Erstellung: $_" -ForegroundColor Red
+		continue
+	}
 
     # 7. Hardware konfigurieren
-    Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $true -StartupBytes $RAMSize # MinimumBytes 512MB -MaximumBytes $RAMSize bleibt auf Standard
-    Set-VMProcessor -VMName $VMName -Count $CPUCount
-    Set-VM -Name $VMName -CheckpointType Disabled
+	Write-Host "  -> Konfiguriere Hardware..." -ForegroundColor DarkGray
+	try {
+		Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $true -StartupBytes $RAMSize
+		Set-VMProcessor -VMName $VMName -Count $CPUCount
+		Set-VM -Name $VMName -CheckpointType Disabled
+	}
+	catch {
+		Write-Host "  -> FEHLER bei Hardware-Konfiguration: $_" -ForegroundColor Red
+		continue
+	}
 
     Write-Host "  -> ERFOLG: $VMName wurde erstellt." -ForegroundColor Green
     
@@ -161,9 +182,6 @@ foreach ($Switch in $SwitchListe) {
     }
 }
 Write-Host "---------------------------------------------"
-
-
-
 
 # --- ABSCHLUSS ---
 Write-Host "---------------------------------------------"
