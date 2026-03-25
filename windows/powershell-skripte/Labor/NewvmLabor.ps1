@@ -1,25 +1,28 @@
 ﻿##################################################
 ###### VIT-Labor mit einem Script erstellen ######
-######               V 5.11                  ######
+######               V 5.3                  ######
 ##################################################
-# Ordnerstruktur angepasst
+# zusätzliche Switch erstellen
 
 # Erstellen mehrerer Server/Router/Client VMs aus SysPrep (Massenproduktion)
 
 # --- KONFIGURATION DER VMS ---
 # Hier trägst du alle VMs ein, die erstellt werden sollen
 $VMListe = @(
-    @{ Name = "Test9-CL-A-Stadt";      OS = "Client"; Switch = "T9-A-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-CL-B-Stadt";      OS = "Client"; Switch = "T9-B-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-CL-C-Stadt";      OS = "Client"; Switch = "T9-C-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-CL-D-Stadt";      OS = "Client"; Switch = "T9-D-Stadt";      CPU = 2; RAM = 2GB },
-    @{ Name = "Test9-Router-A-Stadt";  OS = "Server"; Switch = "T9-A-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-Router-B-Stadt";  OS = "Server"; Switch = "T9-B-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-Router-C-Stadt";  OS = "Server"; Switch = "T9-C-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-Router-D-Stadt";  OS = "Server"; Switch = "T9-D-Stadt";      CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-DHCP-1";          OS = "Client"; Switch = "T9-Backbone_one"; CPU = 4; RAM = 2GB },
-    @{ Name = "Test9-DHCP-2";          OS = "Client"; Switch = "T9-Backbone_one"; CPU = 4; RAM = 2GB }
+    @{ Name = "Test-CL-A-Stadt";      OS = "Client"; Switch = "T-A-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-CL-B-Stadt";      OS = "Client"; Switch = "T-B-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-CL-C-Stadt";      OS = "Client"; Switch = "T-C-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-CL-D-Stadt";      OS = "Client"; Switch = "T-D-Stadt";      CPU = 2; RAM = 2GB },
+    @{ Name = "Test-Router-A-Stadt";  OS = "Server"; Switch = "T-A-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-Router-B-Stadt";  OS = "Server"; Switch = "T-B-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-Router-C-Stadt";  OS = "Server"; Switch = "T-C-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-Router-D-Stadt";  OS = "Server"; Switch = "T-D-Stadt";      CPU = 4; RAM = 2GB },
+    @{ Name = "Test-DHCP-1";          OS = "Server"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB },
+    @{ Name = "Test-DHCP-2";          OS = "Server"; Switch = "T-Backbone_one"; CPU = 4; RAM = 2GB }
 )
+
+# --- ZUSÄTZLICHE SWITCH ---
+$SwitchListe = @("Test-Backbone_two")
 
 # --- sollen die erstellten VMs sofort gestarten werden ---
 
@@ -29,8 +32,14 @@ $vmStart = "nein"
 $BaseDir = "C:\HyperV"
 $VMPath = "$BaseDir\VM" 
 $VHDXPath = "$BaseDir\VHDX"
-$SysPrepPath = "$BaseDir\SysPrep"
+$SysPrepPath = "C:\SysPrep"
 $logPath = "$BaseDir\_log"
+
+
+$timestamp = (get-date -Format 'yyyyMMdd_HH-mm') 
+$logfile = $logPath + "\CreateVMs" + "_" + "$timestamp" + '.txt' 
+Start-Transcript -Path $logfile
+
 
 # SysPrep-Quellen
 $SourceClient = "$SysPrepPath\Win11-SysPrep.vhdx"
@@ -60,22 +69,25 @@ Write-Host "---------------------------------------------"
 # Prüfen, ob die Ordner existieren
 if (-not (Test-Path $VMPath)) { Write-Host "FEHLER: Ordner fehlt: $VMPath" -ForegroundColor Red; return }
 if (-not (Test-Path $VHDXPath)) { Write-Host "FEHLER: Ordner fehlt: $VHDXPath" -ForegroundColor Red; return }
-if (-not (Test-Path $logPath)) {
-    # Versuchen, den Ordner zu erstellen
-    try {
-        New-Item -ItemType Directory -Path $logPath -Force | Out-Null
-        Write-Host "Info: Ordner existierte nicht, wurde aber erstellt: $logPath" -ForegroundColor Green
-    }
-    catch {
-        # Nur wenn das Erstellen fehlschlägt, brechen wir wirklich ab
-        Write-Host "KRITISCH: Konnte Ordner nicht erstellen: $logPath" -ForegroundColor Red
-        return
-    }
-}
 
 # Prüfen, ob die Images existieren
 if (-not (Test-Path $SourceClient)) { Write-Host "FEHLER: Client-Image fehlt: $SourceClient" -ForegroundColor Red; return }
 if (-not (Test-Path $SourceServer)) { Write-Host "FEHLER: Server-Image fehlt: $SourceServer" -ForegroundColor Red; return }
+
+
+# --- NEU: ZUSÄTZLICHE SWITCHES VORAB ERSTELLEN ---
+Write-Host "Prüfe zusätzliche Switches aus der SwitchListe..." -ForegroundColor White
+foreach ($Switch in $SwitchListe) {
+    if (-not (Get-VMSwitch -Name $Switch -ErrorAction SilentlyContinue)) {
+        Write-Host "  -> Erstelle zusätzlichen Switch '$Switch' (Private)..." -ForegroundColor Cyan
+        New-VMSwitch -Name $Switch -SwitchType Private | Out-Null
+    } else {
+        Write-Host "  -> Zusatz-Switch '$Switch' existiert bereits." -ForegroundColor DarkGray
+    }
+}
+Write-Host "---------------------------------------------"
+
+
 
 
 # --- HAUPTSCHLEIFE (Geht jede VM durch) ---
@@ -153,3 +165,6 @@ Write-Host "* Computernamen in den VMs ändern!" -ForegroundColor Magenta
 Write-Host "* NIC umbennen!" -ForegroundColor Magenta
 Write-Host "* evtl. weitere NICs hinzufügen und umbennen!" -ForegroundColor Magenta
 Write-Host "Viel Erfolg und Spaß" -ForegroundColor Magenta
+
+# --- LOGGING STOPPEN ---
+Stop-Transcript
