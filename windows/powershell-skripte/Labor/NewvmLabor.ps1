@@ -1,69 +1,105 @@
 ﻿#Erstellen einer Server/Router VM  oder Client VM aus einer SysPrep
 
 # Name der neuen VM
-$VMName = "Test"
-$VMSwitch = "A-Stadt"
+$VMName = "TestSrv7"
+$VMSwitch = "TestSrv7-Stadt"
+$OS = "Server" # Client oder Server
+$CPUCount = 4 # vCPU 2-4 Client
 
-# allgemeine Variablen
-$VMPath = "C:\HyperV\VM" # optional
-# $ParentVHDX = "C:\SysPrep\Win11-SysPrep.vhdx"# Client SysPrep
-$ParentVHDX = "C:\SysPrep\S-2022-sysprep_10_07_2025.vhdx" # Server SysPrep
-$NewVHDX = "C:\HyperV\VHDX\HDD-$VMName.vhdx"
+# Pfade
+$BaseDir = "C:\HyperV"
+$VMPath = "$BaseDir\VM" # optional
+$VHDXPath = "$BaseDir\VHDX"
+$NewVHDXFile = "$VHDXPath\HDD-$VMName.vhdx"
+
+# SysPrep-Image (sollte schreibgeschützt sein)
+$SourceClient = "C:\SysPrep\Win11-SysPrep.vhdx"# Client SysPrep
+$SourceServer = "C:\SysPrep\S-2022-sysprep_10_07_2025.vhdx" # Server SysPrep
 
 Clear-Host
 
-# Überprüfen, ob die SysPrep existiert
+# Entscheiden, welche SysPrep
+
+if ($OS -eq "Client"){
+        $ParentVHDX = $SourceClient
+        Write-Host "Modus: CLIENT ausgewaehlt. Nutze Image: $ParentVHDX" -ForegroundColor Cyan
+}
+elseif ($OS -eq "Server"){
+        $ParentVHDX = $SourceServer
+        Write-Host "Modus: Server ausgewaehlt. Nutze Image: $ParentVHDX" -ForegroundColor Cyan
+}
+else {
+    # Fängt Tippfehler ab (z.B. wenn $OS leer ist oder falsch geschrieben wurde)
+    Write-Host "FEHLER: Die Variable `$OS` muss 'Client' oder 'Server' sein. Aktueller Wert: '$OS'" -ForegroundColor Red
+    return
+}
+
+
+# Prüfen, ob die SysPrep existiert
 
 if (-not (Test-Path $ParentVHDX)) {
     Write-Host "KRITISCHER FEHLER: Das Parent-Image fehlt: $ParentVHDX" -ForegroundColor Red
     return
 }
 
-# Überprüfen, ob die Ordner existieren
+# Prüfen, ob die Ordner existieren
 
-if (-not (Test-Path $VMConfigPath)) {
-    Write-Host "KRITISCHER FEHLER: Das Parent-Image fehlt: $ParentVHDX" -ForegroundColor Red
+if (-not (Test-Path $VMPath)) {
+    Write-Host "KRITISCHER FEHLER: Der Ordner fehlt: $VMPath" -ForegroundColor Red
+    return
 }
-
 if (-not (Test-Path $VHDXPath)) {
-    Write-Host "KRITISCHER FEHLER: Das Parent-Image fehlt: $ParentVHDX" -ForegroundColor Red
+    Write-Host "KRITISCHER FEHLER: Der Ordner fehlt: $VHDXPath" -ForegroundColor Red
+    return
 }
 
-# Konfiguration Neuer Switch ###########################
-$SwitchName = "Z-Stadt"
+# Prüfen, ob die VM schon existiert
+if (Get-VM -Name $VMName -ErrorAction SilentlyContinue) {
+    Write-Host "ABBRUCH: Die VM '$VMName' existiert bereits!" -ForegroundColor Red
+    return
+}
+
+# Prüfen, ob die differenzierende Festplatte schon existiert
+if (Test-Path $NewVHDXFile) {
+    Write-Host "ABBRUCH: Die Datei '$NewVHDXFile' existiert bereits! Bitte löschen." -ForegroundColor Red
+    return
+}
 
 # Prüfen, ob der Switch schon existiert
-if (Get-VMSwitch -Name $SwitchName -ErrorAction SilentlyContinue) {
-    Write-Host "Switch '$SwitchName' existiert bereits." -ForegroundColor Yellow
+if (Get-VMSwitch -Name $VMSwitch -ErrorAction SilentlyContinue) {
+    Write-Host "Switch '$VMSwitch' existiert bereits." -ForegroundColor Yellow
 }
 else {
-    Write-Host "Erstelle Switch '$SwitchName'..." -ForegroundColor Cyan
+    Write-Host "Erstelle Switch '$VMSwitch'..." -ForegroundColor Cyan
     
-    New-VMSwitch -Name $SwitchName -SwitchType Private  | Out-Null
+    New-VMSwitch -Name $VMSwitch -SwitchType Private | Out-Null
         
-    Write-Host "Switch '$SwitchName' erfolgreich erstellt!" -ForegroundColor Green
+    Write-Host "Switch '$VMSwitch' erfolgreich erstellt!" -ForegroundColor Green
 }
 
 
-##########################################################
+Write-Host "Erstelle differenzierende Festplatte..." -ForegroundColor Cyan 
+New-VHD -ParentPath $ParentVHDX -Path $NewVHDXFile -Differencing | Out-Null
 
+Write-Host "Erstelle Virtuelle Maschine '$VMName'..." -ForegroundColor Cyan
+New-VM -Name $VMName -VHDPath $NewVHDXFile -Generation 2 -SwitchName $VMSwitch -Path $VMPath | Out-Null
 
-# Neuen differenzierenden Datenträger aus SysPrep erstellen 
-New-VHD -ParentPath $ParentVHDX -Path $NewVHDX -Differencing
+# --- KONFIGURATION DER VM ---
+Write-Host "Konfiguriere Hardware..." -ForegroundColor Cyan
 
-# Neue VM erstellen und die zuvor erstellte VHDX zuweisen
-New-VM -Name $VMName -VHDPath $NewVHDX -Generation 2 -SwitchName $VMSwitch -Path $VMPath
-
-# Arbeitsspeicher konfigurieren
 Set-VMMemory -VMName $VMName -DynamicMemoryEnabled $true -StartupBytes 2GB #-MinimumBytes 512MB -MaximumBytes 2GB
-
-# Anzahl der virtuellen Prozessoren festlegen
-Set-VMProcessor -VMName $VMName -Count 2 # 2-4 sind ausreichend für einen Client, 10 für Server
-
-# Prüfpunkte deaktivieren
+Set-VMProcessor -VMName $VMName -Count $CPUCount
 Set-VM -Name $VMName -CheckpointType Disabled
+
+Write-Host "VM '$VMName' ($OS) wurde erfolgreich erstellt." -ForegroundColor Green
 
 # VM starten
 # Start-VM -Name $VMName
 
-
+# ----- Infos für Micha -----
+Write-Host
+Write-Host "So Micha..." -ForegroundColor Magenta
+Write-Host "* Computernamen ändern!" -ForegroundColor Magenta
+Write-Host "* NIC umbennen!" -ForegroundColor Magenta
+Write-Host "* evtl. weitere NICs hinzufügen und umbennen!" -ForegroundColor Magenta
+Write-Host "Viel Erfolg und Spaß" -ForegroundColor Magenta
