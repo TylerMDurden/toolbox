@@ -81,6 +81,21 @@ Folgende Schritte sind nach dem Script noch manuell nötig:
 
 ---
 
+## Weitere Scripts (tools/)
+
+Kleine Hilfsskripte für einzelne Aufgaben im Labor.
+
+| Script | Beschreibung |
+|--------|-------------|
+| `NewHDDClient.ps1` | Erstellt eine einzelne differenzierende VHDX aus dem Win11-SysPrep-Image |
+| `NewInternalSwitch.ps1` | Erstellt einen einzelnen privaten Switch – mit Prüfung ob er bereits existiert |
+| `VMstart.ps1` | Startet alle Labor-VMs per Liste – erhöht sich automatisch auf Admin-Rechte |
+| `VMstop.ps1` | Stoppt alle Labor-VMs per Liste |
+
+> Die VM-Namen in `VMstart.ps1` und `VMstop.ps1` müssen an die eigene Laborumgebung angepasst werden.
+
+---
+
 ## Versionsverlauf
 
 | Version | Änderung |
