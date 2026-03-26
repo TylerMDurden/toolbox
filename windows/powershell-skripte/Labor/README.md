@@ -116,4 +116,6 @@ Kleine Hilfsskripte für einzelne Aufgaben im Labor.
 | v5.3 | SwitchListe für zusätzliche Switches, Transcript-Logging |
 | v5.4 | Zwei-Standort-Unterstützung (Haus A6/W10), NIC-Umbenennung per Passthru |
 | v5.5 | Log-Ordner wird automatisch erstellt falls fehlend |
-| **v5.6** | **Aktuelle Version** – SwitchListe ans Ende verschoben, produktionsreife VM-Liste |
+| v5.6 | SwitchListe ans Ende verschoben, produktionsreife VM-Liste |
+| v5.7 | `vmStart` auf Boolean umgestellt, `exit 1` statt `return` bei Fehlern |
+| **v5.8** | **Aktuelle Version** – `try/catch` für VHDX-Erstellung, VM-Erstellung und Hardware-Konfiguration |
