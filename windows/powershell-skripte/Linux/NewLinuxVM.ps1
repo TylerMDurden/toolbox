@@ -1,7 +1,8 @@
 ﻿#################################################
 ######   Linux VM für Fedora Workstation   ######
-######               V 1.1                 ######
+######               V 1.11                ######
 #################################################
+# kleine Fehlerkorrektur bei den Pfaden
 
 # ---Erstellen einer Linux VM mit einer BootCD und bestimmten Optionen
 
@@ -11,7 +12,7 @@ $VMName   = "fedora43-ws"
 # --- GLOBALE PFADE ---
 $BaseDir  = "C:\HyperV"
 $VMPath   = "$BaseDir\VM"
-$VHDXPath  = "$VMPath\HDD-$VMName.vhdx"
+$VHDXPath  = "$BaseDir\VHDX\HDD-$VMName.vhdx"
 $ISOPath  = "C:\HyperV\ISO\Fedora-Workstation-Live-43-1.6.x86_64.iso"
 $Switch   = "Default Switch"                    # oder dein externer Switch
 
