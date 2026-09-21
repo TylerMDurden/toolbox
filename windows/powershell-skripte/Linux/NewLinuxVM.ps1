@@ -36,6 +36,8 @@ if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Adm
 # --- Wenn die Überprüfung erfolgreich war, geht es hier weiter ---
 Write-Host "Adminrechte bestätigt. Skript wird ausgeführt..." -ForegroundColor Green
 
+Write-Host "Übersicht der Einstellungen der Linux VM - $VMName" -ForegroundColor Magenta
+
 Write-Host "Starte Erstellung Linux VM - $VMName" -ForegroundColor Magenta
 Write-Host "---------------------------------------------"
 
