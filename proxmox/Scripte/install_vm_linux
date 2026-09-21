@@ -1,3 +1,18 @@
+#!/bin/bash
+#
+# Vorlage zum Erzeugen einer Linux-VM unter Proxmox (Zion)
+#
+# Ausführbar-Bit setzen
+# chmod +x install_vm_linux
+#
+# Ausführen
+# ./install_vm_linux
+#
+# Überprüfung der Syntax ohne etwas auszuführen
+# bash -n install_vm_linux
+
+
+# ─── Konfiguration ──────────────────────────────────────────────
 VMID=400                 # freie ID wählen
 STORAGE=vm-storage-fast  # dein Disk-Storage
 ISO_STORAGE=local        # wo die ISO liegt
