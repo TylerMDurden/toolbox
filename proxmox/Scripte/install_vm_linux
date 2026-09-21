@@ -12,7 +12,7 @@
 # bash -n install_vm_linux
 
 
-# ─── Konfiguration ──────────────────────────────────────────────
+# ─── Konfiguration ─────────────────────────────────────────────────
 VMID=400            						# freie ID wählen
 NAME=kali-linux								# VM Name
 ISO=kali-linux-2026.2-installer-amd64.iso
@@ -23,6 +23,12 @@ SOCKETS=1
 CORES=4
 MEMORY=8192
 DISK=60
+# ───────────────────────────────────────────────────────────────────
+# Prüfen, ob die VMID schon vergeben ist
+if qm status "$VMID" &>/dev/null; then
+  echo "Fehler: VMID $VMID ist bereits vergeben. Bitte eine freie ID wählen."
+  exit 1
+fi
 
 qm create $VMID \
   --name $NAME \
